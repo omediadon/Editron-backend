@@ -10,6 +10,7 @@ jobs:
     resource_class: medium
     steps:
       - checkout
+      - run: npm install -g yarn
       - run: yarn install
       - run:
           name: Test
