@@ -8,16 +8,79 @@ jobs:
     docker:
       - image: cimg/node:lts
     resource_class: medium
+    working_directory: ~/app
     steps:
       - checkout
       - run: npm install -g yarn
       - run: yarn install
       - run:
-          name: Test
+          name: Start MySQL container
+          command: |
+            docker-compose up -d db
+          background: true
+      - run:
+          name: Wait for MySQL to start
+          command: docker-compose run --rm wait_db
+      - run:
+          name: Run tests
           command: yarn test
+
+  deploy:
+    docker:
+      - image: cimg/node:lts
+    resource_class: medium
+    working_directory: ~/app
+    steps:
+      - checkout
+      - run: yarn install
+      - run: yarn build
+      - run: yarn start
+
+  setup:
+    docker:
+      - image: cimg/mysql:8.0
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+        environment:
+          MYSQL_ROOT_PASSWORD: rootpw
+          MYSQL_DATABASE: editron
+          MYSQL_USER: editron
+          MYSQL_PASSWORD: passw0rd
+    resource_class: medium
+    working_directory: ~/app
+    steps:
+      - checkout
+      - run:
+          name: Waiting for MySQL to be ready
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z 127.0.0.1 3306 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for MySQL && exit 1
+      - run:
+          name: Install MySQL CLI; Import dummy data; run an example query
+          command: |
+            sudo apt-get install default-mysql-client
+            mysql -h 127.0.0.1 -u editron -ppassw0rd editron < sql-data/dummy.sql
+            mysql -h 127.0.0.1 -u editron -ppassw0rd --execute="SELECT * FROM editron.users"
+
 
 workflows:
   version: 2
-  build-and-test:
+  build-and-deploy:
     jobs:
+      - build:
+          requires:
+            - setup
+      - deploy:
+          requires:
+            - build
+      - setup
+  setup-and-test:
+    jobs:
+      - setup
       - build
