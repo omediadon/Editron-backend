@@ -67,6 +67,9 @@ jobs:
             sudo apt-get install default-mysql-client
             mysql -h 127.0.0.1 -u editron -ppassw0rd editron < sql-data/dummy.sql
             mysql -h 127.0.0.1 -u editron -ppassw0rd --execute="SELECT * FROM editron.users"
+      #- run:
+      #    name: Create database
+      #    command: mysql -h localhost -u root -e 'CREATE DATABASE editron_test;'
 
 
 workflows:
