@@ -10,10 +10,10 @@ jobs:
     resource_class: medium
     steps:
       - checkout
-      - run: npm install
+      - run: yarn install
       - run:
           name: Test
-          command: npm test
+          command: yarn test
 
 workflows:
   version: 2
